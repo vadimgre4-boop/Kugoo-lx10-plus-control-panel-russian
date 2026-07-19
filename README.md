@@ -1,0 +1,1 @@
+# Kugoo-lx10-plus-control-panel-russian
