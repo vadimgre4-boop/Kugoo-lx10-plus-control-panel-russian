@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#12161d">
+<title>Kugoo LX10 Control</title>
+<style>
+:root{
+  --bg:#12161d; --surface:#1b222c; --surface2:#232b38;
+  --accent:#3abeff; --warn:#ffa726; --danger:#ff5c5c;
+  --text:#e8eaed; --text-dim:#9aa1ac; --border:#2a3341;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  -webkit-tap-highlight-color:transparent;}
+#app{max-width:520px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding-bottom:76px;}
+.unsupported{background:var(--danger);color:#fff;padding:10px 16px;text-align:center;font-size:13px;}
+.topbar{display:flex;align-items:center;justify-content:space-between;
+  padding:16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10;}
+.brand{font-weight:700;font-size:17px;}
+.brand .accent{color:var(--accent);}
+.conn-btn{display:flex;align-items:center;gap:8px;background:var(--surface);
+  border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:20px;font-size:13px;}
+.conn-btn.connected{border-color:var(--accent);color:var(--accent);}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--danger);display:inline-block;}
+.conn-btn.connected .dot{background:var(--accent);}
+main{flex:1;padding:16px;}
+.tab{display:none;}
+.tab.active{display:block;}
+.gauge-wrap{width:220px;height:220px;margin:24px auto;position:relative;border-radius:50%;
+  background:conic-gradient(var(--accent) calc(var(--pct,0)*1%), #ffffff17 0);}
+.gauge-inner{position:absolute;inset:14px;border-radius:50%;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.gauge-value{font-size:44px;font-weight:700;}
+.gauge-label{color:var(--text-dim);font-size:13px;}
+.banner{display:flex;align-items:center;gap:8px;background:#ffa72626;border:1px solid var(--warn);
+  color:var(--warn);padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:16px;}
+.banner.hidden{display:none;}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.stat-card{background:var(--surface);border-radius:14px;padding:12px 14px;display:flex;gap:10px;align-items:center;}
+.stat-card .ic{font-size:20px;}
+.stat-card .val{font-weight:600;font-size:16px;}
+.stat-card .lbl{color:var(--text-dim);font-size:11px;}
+.row-actions{display:flex;gap:10px;}
+button.action{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);
+  padding:12px;border-radius:12px;font-size:14px;}
+button.action:active{background:var(--surface2);}
+button:disabled{opacity:.4;}
+.section-title{color:var(--accent);font-size:13px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.03em;margin:22px 0 8px;}
+.section-title:first-child{margin-top:0;}
+.segmented{display:flex;background:var(--surface);border-radius:12px;padding:4px;gap:4px;}
+.segmented button{flex:1;padding:9px;border:none;background:transparent;color:var(--text-dim);
+  border-radius:9px;font-size:13px;}
+.segmented button.active{background:var(--accent);color:#00202e;font-weight:600;}
+.card{background:var(--surface);border-radius:14px;padding:14px;margin-bottom:4px;}
+.hint{color:#ffffff55;font-size:11px;padding:6px 4px 0;}
+.switch-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0;}
+.switch-row + .switch-row{border-top:1px solid var(--border);padding-top:14px;margin-top:8px;}
+.switch-text .t{font-size:14px;}
+.switch-text .s{color:var(--text-dim);font-size:12px;margin-top:2px;}
+.switch{position:relative;width:46px;height:26px;flex-shrink:0;display:inline-block;}
+.switch input{opacity:0;width:0;height:0;position:absolute;}
+.slider-toggle{position:absolute;inset:0;background:#39424f;border-radius:26px;transition:.15s;cursor:pointer;}
+.slider-toggle::before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;
+  background:#fff;border-radius:50%;transition:.15s;}
+input:checked + .slider-toggle{background:var(--accent);}
+input:checked + .slider-toggle::before{transform:translateX(20px);}
+input:disabled + .slider-toggle{opacity:.4;}
+.slider-row{display:flex;align-items:center;gap:10px;}
+input[type=range]{flex:1;accent-color:var(--accent);}
+.slider-value{font-size:12px;color:var(--text-dim);width:64px;text-align:right;}
+.tabbar{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--surface);
+  border-top:1px solid var(--border);max-width:520px;margin:0 auto;padding-bottom:env(safe-area-inset-bottom);}
+.tabbar button{flex:1;background:none;border:none;color:var(--text-dim);
+  padding:10px 4px 8px;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.tabbar button .ic{font-size:19px;}
+.tabbar button.active{color:var(--accent);}
+.empty{text-align:center;color:var(--text-dim);padding:40px 20px;font-size:14px;line-height:1.5;}
+.ride-item{padding:12px 4px;border-bottom:1px solid var(--border);}
+.ride-item .top{display:flex;justify-content:space-between;font-size:14px;}
+.ride-item .bottom{color:var(--text-dim);font-size:12px;margin-top:3px;}
+textarea, input[type=text]{width:100%;background:var(--surface);border:1px solid var(--border);
+  color:var(--text);border-radius:10px;padding:10px;font-size:13px;font-family:inherit;}
+textarea{min-height:56px;resize:vertical;font-family:monospace;}
+.btn-primary{background:var(--accent);color:#00202e;border:none;padding:11px 18px;
+  border-radius:10px;font-weight:600;font-size:14px;flex-shrink:0;}
+.gatt-service{background:var(--surface);border-radius:12px;padding:10px 12px;margin-bottom:8px;}
+.gatt-service .suuid{font-size:12px;color:var(--accent);word-break:break-all;margin-bottom:6px;}
+.gatt-char{display:flex;justify-content:space-between;align-items:center;gap:8px;
+  padding:6px 0;border-top:1px solid var(--border);font-size:11px;}
+.gatt-char .cuuid{word-break:break-all;color:var(--text-dim);}
+.gatt-char .props{color:#66d17a;flex-shrink:0;}
+.gatt-char button{background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  font-size:10px;padding:4px 8px;border-radius:8px;flex-shrink:0;}
+.log-box{height:220px;overflow-y:auto;background:#000;border-radius:10px;padding:8px;
+  font-family:monospace;font-size:11px;color:#66d17a;}
+.log-box div{white-space:pre-wrap;word-break:break-all;margin-bottom:2px;}
+.info-note{color:var(--text-dim);font-size:12px;line-height:1.6;background:var(--surface);
+  border-radius:12px;padding:12px;margin-bottom:14px;}
+.info-note code{color:var(--accent);font-size:11px;}
+.warn-text{color:var(--warn);}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header class="topbar">
+    <div class="brand">Kugoo LX10 <span class="accent">Control</span></div>
+    <button class="conn-btn" id="connBtn">
+      <span class="dot" id="connDot"></span>
+      <span id="connText">Подключить</span>
+    </button>
+  </header>
+
+  <main>
+    <!-- ================= ПАНЕЛЬ ================= -->
+    <section id="tab-dashboard" class="tab active">
+      <div class="gauge-wrap" id="gauge">
+        <div class="gauge-inner">
+          <div class="gauge-value" id="speedValue">0.0</div>
+          <div class="gauge-label">км/ч</div>
+        </div>
+      </div>
+
+      <div class="banner hidden" id="policeBanner">🚓 Полицейский режим включён: лимит 25 км/ч / ~250 Вт</div>
+
+      <div class="stat-grid">
+        <div class="stat-card"><div class="ic">🔋</div><div><div class="val" id="statBattery">0%</div><div class="lbl">Батарея</div></div></div>
+        <div class="stat-card"><div class="ic">⚡</div><div><div class="val" id="statVoltage">0.0 В</div><div class="lbl">Напряжение</div></div></div>
+        <div class="stat-card"><div class="ic">📍</div><div><div class="val" id="statTrip">0.00 км</div><div class="lbl">Поездка</div></div></div>
+        <div class="stat-card"><div class="ic">💡</div><div><div class="val" id="statPower">— Вт</div><div class="lbl">Мощность</div></div></div>
+        <div class="stat-card"><div class="ic">🚦</div><div><div class="val" id="statMode">Normal</div><div class="lbl">Режим</div></div></div>
+        <div class="stat-card"><div class="ic">🔦</div><div><div class="val" id="statLight">Выкл</div><div class="lbl">Фара</div></div></div>
+      </div>
+
+      <div class="row-actions">
+        <button class="action" id="quickLight" disabled>🔦 Фара</button>
+        <button class="action" id="quickLock" disabled>🔓 Заблокировать</button>
+      </div>
+
+      <div class="empty" id="disconnHint">Нет подключения. Нажми «Подключить» вверху экрана.</div>
+    </section>
+
+    <!-- ================= УПРАВЛЕНИЕ ================= -->
+    <section id="tab-controls" class="tab">
+      <div class="section-title">Режим езды</div>
+      <div class="segmented" id="modeSeg">
+        <button data-mode="eco" disabled>Eco</button>
+        <button data-mode="normal" class="active" disabled>Normal</button>
+        <button data-mode="sport" disabled>Sport</button>
+      </div>
+
+      <div class="section-title">Полицейский режим</div>
+      <div class="card">
+        <div class="switch-row">
+          <div class="switch-text">
+            <div class="t">Легальный лимит: 25 км/ч / 250 Вт</div>
+            <div class="s">Если контроллер не поддерживает лимит по ваттам напрямую, дополнительно включается Eco.</div>
+          </div>
+          <label class="switch"><input type="checkbox" id="policeToggle" disabled><span class="slider-toggle"></span></label>
+        </div>
+      </div>
+
+      <div class="section-title">Лимит скорости</div>
+      <div class="card">
+        <div class="slider-row">
+          <input type="range" id="speedLimitSlider" min="6" max="45" step="1" value="32" disabled>
+          <div class="slider-value" id="speedLimitValue">32 км/ч</div>
+        </div>
+      </div>
+      <div class="hint">Диапазон 6–45 км/ч ориентировочный — поправь min/max у #speedLimitSlider под свою модель, когда узнаешь реальный максимум.</div>
+
+      <div class="section-title">Круиз-контроль</div>
+      <div class="card">
+        <div class="switch-row">
+          <div class="switch-text"><div class="t">Круиз-контроль</div><div class="s">Поддерживать скорость без газа</div></div>
+          <label class="switch"><input type="checkbox" id="cruiseToggle" disabled><span class="slider-toggle"></span></label>
+        </div>
+      </div>
+
+      <div class="section-title">Плавность старта</div>
+      <div class="segmented" id="startSeg">
+        <button data-profile="soft" disabled>Плавный</button>
+        <button data-profile="normal" class="active" disabled>Обычный</button>
+        <button data-profile="aggressive" disabled>Резкий</button>
+      </div>
+
+      <div class="section-title">Рекуперация торможения</div>
+      <div class="card">
+        <div class="slider-row">
+          <input type="range" id="regenSlider" min="0" max="3" step="1" value="1" disabled>
+          <div class="slider-value" id="regenValue">Уровень 1</div>
+        </div>
+      </div>
+
+      <div class="section-title">Освещение и блокировка</div>
+      <div class="card">
+        <div class="switch-row">
+          <div class="switch-text"><div class="t">Фара</div></div>
+          <label class="switch"><input type="checkbox" id="lightsToggle" disabled><span class="slider-toggle"></span></label>
+        </div>
+        <div class="switch-row">
+          <div class="switch-text"><div class="t">Блокировка (анти-угон)</div><div class="s">Блокирует мотор при попытке уехать</div></div>
+          <label class="switch"><input type="checkbox" id="lockToggle" disabled><span class="slider-toggle"></span></label>
+        </div>
+      </div>
+      <div class="empty" id="controlsDisconnHint">Подключись к самокату, чтобы управление стало активным.</div>
+    </section>
+
+    <!-- ================= ИСТОРИЯ ================= -->
+    <section id="tab-history" class="tab">
+      <div id="historyContent"></div>
+    </section>
+
+    <!-- ================= ОТЛАДКА ================= -->
+    <section id="tab-debug" class="tab">
+      <div id="deviceInfoCard"></div>
+
+      <div class="section-title">Доп. UUID сервисов</div>
+      <div class="info-note">
+        Особенность Web Bluetooth: страница видит только те сервисы, чьи UUID заранее перечислены
+        в коде — в отличие от нативного приложения, которое видит вообще все сервисы устройства сразу.
+        Когда снимешь трафик и узнаешь настоящий UUID сервиса Kugoo — впиши его сюда (через запятую
+        или с новой строки) и переподключись.
+      </div>
+      <textarea id="extraUuids" placeholder="например: 0000fff0-0000-1000-8000-00805f9b34fb"></textarea>
+      <div style="margin-top:8px;"><button class="btn-primary" id="saveUuids">Сохранить</button></div>
+
+      <div class="section-title">GATT-сервисы и характеристики</div>
+      <div id="gattTree" class="empty">Нет подключения.</div>
+
+      <div class="section-title">Ручная отправка команды</div>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="hexInput" placeholder="AA 01 10 55">
+        <button class="btn-primary" id="sendHex">Send</button>
+      </div>
+
+      <div class="section-title">Живой лог (<span id="logCount">0</span>)</div>
+      <div class="log-box" id="logBox"></div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button data-tab="dashboard" class="active"><span class="ic">📊</span>Панель</button>
+    <button data-tab="controls"><span class="ic">🎛️</span>Управление</button>
+    <button data-tab="history"><span class="ic">🕓</span>История</button>
+    <button data-tab="debug"><span class="ic">🐞</span>Отладка</button>
+  </nav>
+</div>
+
+<script>
+/* ============================================================================
+ * ⚠️ ПРОТОКОЛ — ЗАГЛУШКА. Единственный блок, который нужно будет заменить.
+ * У Kugoo LX10 Plus нет публичной BLE-документации. UUID и байты команд ниже —
+ * образец по типичным паттернам дешёвых BLE-модулей (HM-10/JDY-08, Nordic
+ * UART), НЕ подтверждённые значения для этой модели. BLE-подключение и вкладка
+ * "Отладка" ниже — реальный рабочий Web Bluetooth, не зависящий от протокола.
+ * ========================================================================= */
+const Protocol = {
+  SERVICE_GUESS: '0000ffe0-0000-1000-8000-00805f9b34fb',
+  NUS_SERVICE: '6e400001-b5a3-f393-e0a9-e50e24dcca9e',
+  DEVICE_INFO_SERVICE: '0000180a-0000-1000-8000-00805f9b34fb',
+  FIRMWARE_REV_CHAR: '00002a26-0000-1000-8000-00805f9b34fb',
+  BATTERY_SERVICE: '0000180f-0000-1000-8000-00805f9b34fb',
+
+  defaultOptionalServices() {
+    return [this.SERVICE_GUESS, this.NUS_SERVICE, this.DEVICE_INFO_SERVICE, this.BATTERY_SERVICE];
+  },
+
+  _wrap(cmd, payload) {
+    const body = [cmd, ...payload];
+    let checksum = 0;
+    for (const b of body) checksum = (checksum + b) & 0xFF;
+    return new Uint8Array([0xAA, body.length, ...body, checksum, 0x55]);
+  },
+  cmdSetMode(mode) { return this._wrap(0x10, [{eco:1,normal:2,sport:3}[mode] || 2]); },
+  cmdSetLock(locked) { return this._wrap(0x11, [locked ? 1 : 0]); },
+  cmdSetLights(on) { return this._wrap(0x12, [on ? 1 : 0]); },
+  cmdSetCruise(on) { return this._wrap(0x13, [on ? 1 : 0]); },
+  cmdSetSpeedLimit(kmh) { return this._wrap(0x14, [kmh & 0xFF]); },
+  cmdSetPowerLimit(watts) { return this._wrap(0x15, [(watts >> 8) & 0xFF, watts & 0xFF]); },
+  cmdSetStartProfile(p) { return this._wrap(0x16, [{soft:0,normal:1,aggressive:2}[p] ?? 1]); },
+  cmdSetRegenLevel(lvl) { return this._wrap(0x17, [lvl & 0xFF]); },
+  cmdRequestStatus() { return this._wrap(0x20, []); },
+
+  // TODO-PROTOCOL: раскладка байт — образец, вычислить по реальному дампу
+  parseNotification(bytes) {
+    if (!bytes || bytes.length < 6) return null;
+    try {
+      return {
+        speedKmh: bytes[2] / 10,
+        batteryPercent: Math.min(100, Math.max(0, bytes[3])),
+        batteryVoltage: bytes[4] / 10,
+      };
+    } catch (e) { return null; }
+  },
+};
+
+/* ============================================================================
+ * BLE — универсальный Web Bluetooth клиент, реально работает уже сейчас
+ * ========================================================================= */
+const Ble = {
+  device: null, server: null, writeChar: null, notifyChar: null, services: [],
+  onData: null, onConnectionChange: null,
+
+  isSupported() { return 'bluetooth' in navigator; },
+
+  async connect() {
+    const extra = loadExtraUuids();
+    const optionalServices = [...new Set([...Protocol.defaultOptionalServices(), ...extra])];
+    this.device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices });
+    this.device.addEventListener('gattserverdisconnected', () => this._onDisconnected());
+    this.server = await this.device.gatt.connect();
+    await this._discover();
+    this.onConnectionChange && this.onConnectionChange(true);
+  },
+
+  async _discover() {
+    this.services = []; this.writeChar = null; this.notifyChar = null;
+    let list = [];
+    try { list = await this.server.getPrimaryServices(); }
+    catch (e) { logLine('Ошибка чтения сервисов: ' + e.message); }
+    for (const service of list) {
+      let chars = [];
+      try { chars = await service.getCharacteristics(); } catch (e) { continue; }
+      for (const ch of chars) {
+        if (!this.writeChar && (ch.properties.write || ch.properties.writeWithoutResponse)) this.writeChar = ch;
+        if (!this.notifyChar && (ch.properties.notify || ch.properties.indicate)) this.notifyChar = ch;
+      }
+      this.services.push({ uuid: service.uuid, characteristics: chars });
+    }
+    if (this.notifyChar) await this._subscribe(this.notifyChar);
+  },
+
+  async _subscribe(ch) {
+    await ch.startNotifications();
+    ch.addEventListener('characteristicvaluechanged', (e) => {
+      const bytes = new Uint8Array(e.target.value.buffer);
+      this.onData && this.onData(bytes);
+    });
+  },
+
+  async bindCharacteristics(writeCh, notifyCh) {
+    if (this.notifyChar && this.notifyChar !== notifyCh) { try { await this.notifyChar.stopNotifications(); } catch (e) {} }
+    this.writeChar = writeCh; this.notifyChar = notifyCh;
+    await this._subscribe(notifyCh);
+  },
+
+  async sendBytes(bytes) {
+    const c = this.writeChar;
+    if (!c) throw new Error('Write-характеристика не найдена/не выбрана (см. «Отладка»)');
+    const wantNoResp = c.properties.writeWithoutResponse && !c.properties.write;
+    try {
+      if (wantNoResp && c.writeValueWithoutResponse) await c.writeValueWithoutResponse(bytes);
+      else if (c.writeValueWithResponse) await c.writeValueWithResponse(bytes);
+      else await c.writeValue(bytes);
+    } catch (e) { await c.writeValue(bytes); }
+  },
+
+  disconnect() { this.device && this.device.gatt && this.device.gatt.disconnect(); },
+
+  _onDisconnected() {
+    this.writeChar = null; this.notifyChar = null; this.services = [];
+    this.onConnectionChange && this.onConnectionChange(false);
+  },
+};
+
+function loadExtraUuids() {
+  const raw = localStorage.getItem('kugoo_extra_uuids') || '';
+  return raw.split(/[,\n]/).map(s => s.trim().toLowerCase()).filter(Boolean);
+}
+
+/* ============================================================================
+ * СОСТОЯНИЕ + ИСТОРИЯ ПОЕЗДОК (localStorage)
+ * ========================================================================= */
+let state = {
+  connected: false, speedKmh: 0, batteryPercent: 0, batteryVoltage: 0, powerWatts: null,
+  tripKm: 0, mode: 'normal', lightsOn: false, locked: false, cruiseControlOn: false,
+  speedLimitKmh: 32, policeModeOn: false, startProfile: 'normal', regenLevel: 1,
+};
+
+const RideTracker = {
+  startTime: null, distanceAccum: 0, maxSpeed: 0, samples: [], startBattery: 0, lastSampleTime: null,
+  start() {
+    this.startTime = Date.now(); this.distanceAccum = 0; this.maxSpeed = 0; this.samples = [];
+    this.startBattery = state.batteryPercent; this.lastSampleTime = Date.now();
+  },
+  sample() {
+    if (!this.startTime) return;
+    const now = Date.now();
+    const dtHours = (now - this.lastSampleTime) / 3600000;
+    this.distanceAccum += state.speedKmh * dtHours;
+    this.lastSampleTime = now;
+    if (state.speedKmh > this.maxSpeed) this.maxSpeed = state.speedKmh;
+    this.samples.push(state.speedKmh);
+    state.tripKm = this.distanceAccum;
+  },
+  finish() {
+    if (!this.startTime) return;
+    const durationSec = (Date.now() - this.startTime) / 1000;
+    const start = this.startTime; this.startTime = null;
+    if (this.distanceAccum < 0.05 || durationSec < 30) return;
+    const avg = this.samples.length ? this.samples.reduce((a,b)=>a+b,0) / this.samples.length : 0;
+    const rides = loadRides();
+    rides.unshift({ start, end: Date.now(), distanceKm: this.distanceAccum, avgSpeedKmh: avg,
+      maxSpeedKmh: this.maxSpeed, startBattery: this.startBattery, endBattery: state.batteryPercent });
+    localStorage.setItem('kugoo_ride_history', JSON.stringify(rides));
+    renderHistory();
+  },
+};
+function loadRides() { try { return JSON.parse(localStorage.getItem('kugoo_ride_history') || '[]'); } catch (e) { return []; } }
+
+Ble.onConnectionChange = (connected) => {
+  state.connected = connected;
+  if (connected) RideTracker.start(); else RideTracker.finish();
+  render(); renderGattTree(); renderDeviceInfoCard();
+};
+Ble.onData = (bytes) => {
+  const parsed = Protocol.parseNotification(bytes);
+  if (parsed) Object.assign(state, parsed);
+  RideTracker.sample();
+  render();
+  logLine('← ' + toHex(bytes));
+};
+
+/* ============================================================================
+ * RENDER
+ * ========================================================================= */
+function render() {
+  const connBtn = document.getElementById('connBtn');
+  connBtn.classList.toggle('connected', state.connected);
+  document.getElementById('connText').textContent = state.connected ? 'Подключено' : 'Подключить';
+
+  const limit = state.speedLimitKmh || 32;
+  const pct = Math.min(100, Math.max(0, (state.speedKmh / limit) * 100));
+  document.getElementById('gauge').style.setProperty('--pct', pct);
+  document.getElementById('speedValue').textContent = state.speedKmh.toFixed(1);
+  document.getElementById('policeBanner').classList.toggle('hidden', !state.policeModeOn);
+
+  document.getElementById('statBattery').textContent = state.batteryPercent + '%';
+  document.getElementById('statVoltage').textContent = state.batteryVoltage.toFixed(1) + ' В';
+  document.getElementById('statTrip').textContent = state.tripKm.toFixed(2) + ' км';
+  document.getElementById('statPower').textContent = state.powerWatts != null ? Math.round(state.powerWatts) + ' Вт' : '— Вт';
+  document.getElementById('statMode').textContent = {eco:'Eco',normal:'Normal',sport:'Sport'}[state.mode];
+  document.getElementById('statLight').textContent = state.lightsOn ? 'Вкл' : 'Выкл';
+
+  document.getElementById('quickLight').disabled = !state.connected;
+  document.getElementById('quickLock').disabled = !state.connected;
+  document.getElementById('quickLock').textContent = state.locked ? '🔒 Снять блок.' : '🔓 Заблокировать';
+  document.getElementById('disconnHint').style.display = state.connected ? 'none' : 'block';
+
+  document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('active', b.dataset.mode === state.mode));
+  document.querySelectorAll('#startSeg button').forEach(b => b.classList.toggle('active', b.dataset.profile === state.startProfile));
+  document.getElementById('policeToggle').checked = state.policeModeOn;
+  document.getElementById('cruiseToggle').checked = state.cruiseControlOn;
+  document.getElementById('lightsToggle').checked = state.lightsOn;
+  document.getElementById('lockToggle').checked = state.locked;
+  document.getElementById('speedLimitSlider').value = state.speedLimitKmh;
+  document.getElementById('speedLimitValue').textContent = state.speedLimitKmh + ' км/ч';
+  document.getElementById('regenSlider').value = state.regenLevel;
+  document.getElementById('regenValue').textContent = 'Уровень ' + state.regenLevel;
+
+  document.querySelectorAll('#modeSeg button, #startSeg button').forEach(b => b.disabled = !state.connected);
+  ['policeToggle','cruiseToggle','lightsToggle','lockToggle','speedLimitSlider','regenSlider'].forEach(id => {
+    document.getElementById(id).disabled = !state.connected;
+  });
+  document.getElementById('controlsDisconnHint').style.display = state.connected ? 'none' : 'block';
+}
+
+function renderHistory() {
+  const rides = loadRides();
+  const el = document.getElementById('historyContent');
+  if (!rides.length) {
+    el.innerHTML = '<div class="empty">Поездок пока нет.<br>Они появятся здесь автоматически после подключения и поездки.</div>';
+    return;
+  }
+  const totalKm = rides.reduce((s,r) => s + r.distanceKm, 0);
+  let html = '<div style="color:var(--text-dim);font-size:13px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">'
+    + '<span>Всего поездок: ' + rides.length + ' · ' + totalKm.toFixed(1) + ' км</span>'
+    + '<button id="clearHistoryBtn" style="background:none;border:none;color:var(--danger);font-size:12px;">Очистить</button></div>';
+  for (const r of rides) {
+    const d = new Date(r.start);
+    const dateStr = d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+    const durationMin = Math.round((r.end - r.start) / 60000);
+    html += '<div class="ride-item"><div class="top"><span>' + r.distanceKm.toFixed(2) + ' км</span><span>' + dateStr + '</span></div>'
+      + '<div class="bottom">Ср. ' + r.avgSpeedKmh.toFixed(1) + ' км/ч · Макс ' + r.maxSpeedKmh.toFixed(1) + ' км/ч · '
+      + durationMin + ' мин · ' + r.startBattery + '%→' + r.endBattery + '%</div></div>';
+  }
+  el.innerHTML = html;
+  document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+    if (confirm('Очистить историю поездок? Это действие нельзя отменить.')) {
+      localStorage.removeItem('kugoo_ride_history');
+      renderHistory();
+    }
+  });
+}
+
+function renderDeviceInfoCard() {
+  const el = document.getElementById('deviceInfoCard');
+  if (!Ble.device) { el.innerHTML = ''; return; }
+  el.innerHTML = '<div class="info-note">'
+    + '<b>Устройство:</b> ' + (Ble.device.name || '(без имени)') + '<br>'
+    + '<b>Write:</b> ' + (Ble.writeChar ? Ble.writeChar.uuid : '—') + '<br>'
+    + '<b>Notify:</b> ' + (Ble.notifyChar ? Ble.notifyChar.uuid : '—') + '<br><br>'
+    + '<b>Прошивка:</b> если в дереве ниже есть сервис <code>0000180a-…</code> (Device Information), '
+    + 'прочитай его характеристику <code>00002a26-…</code> — это стандартный BLE-сервис, и если самокат '
+    + 'его реализует, версия будет видна без реверс-инжиниринга. Автообновление прошивки '
+    + '<span class="warn-text">намеренно не реализовано</span> — без официального загрузчика Kugoo '
+    + 'неверная запись может необратимо повредить контроллер.</div>';
+}
+
+function renderGattTree() {
+  const el = document.getElementById('gattTree');
+  if (!Ble.services.length) {
+    el.className = 'empty';
+    el.textContent = Ble.device ? 'Сервисы не найдены — возможно, нужно добавить UUID выше и переподключиться.' : 'Нет подключения.';
+    return;
+  }
+  el.className = '';
+  let html = '';
+  Ble.services.forEach((s, si) => {
+    html += '<div class="gatt-service"><div class="suuid">' + s.uuid + '</div>';
+    s.characteristics.forEach((ch, ci) => {
+      const props = [];
+      if (ch.properties.read) props.push('read');
+      if (ch.properties.write) props.push('write');
+      if (ch.properties.writeWithoutResponse) props.push('writeNoResp');
+      if (ch.properties.notify) props.push('notify');
+      if (ch.properties.indicate) props.push('indicate');
+      html += '<div class="gatt-char"><div><div class="cuuid">' + ch.uuid + '</div><div class="props">' + props.join(', ') + '</div></div>'
+        + '<button data-si="' + si + '" data-ci="' + ci + '">Выбрать</button></div>';
+    });
+    html += '</div>';
+  });
+  el.innerHTML = html;
+  el.querySelectorAll('button[data-si]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const svc = Ble.services[parseInt(btn.dataset.si, 10)];
+      const ch = svc.characteristics[parseInt(btn.dataset.ci, 10)];
+      try { await Ble.bindCharacteristics(ch, ch); renderDeviceInfoCard(); alert('Характеристика выбрана как write+notify'); }
+      catch (e) { alert('Ошибка: ' + e.message); }
+    });
+  });
+}
+
+function toHex(bytes) { return Array.from(bytes).map(b => b.toString(16).padStart(2,'0')).join(' '); }
+function parseHex(input) {
+  const clean = input.replace(/[^0-9a-fA-F]/g, '');
+  if (!clean.length || clean.length % 2 !== 0) return null;
+  const bytes = [];
+  for (let i = 0; i < clean.length; i += 2) bytes.push(parseInt(clean.substr(i,2), 16));
+  return new Uint8Array(bytes);
+}
+function logLine(text) {
+  const box = document.getElementById('logBox');
+  const time = new Date().toTimeString().substr(0,8);
+  const div = document.createElement('div');
+  div.textContent = time + '  ' + text;
+  box.prepend(div);
+  while (box.children.length > 200) box.removeChild(box.lastChild);
+  document.getElementById('logCount').textContent = box.children.length;
+}
+
+/* ============================================================================
+ * КОМАНДЫ УПРАВЛЕНИЯ
+ * ========================================================================= */
+async function sendCmd(bytesFn, patch) {
+  try { await Ble.sendBytes(bytesFn()); Object.assign(state, patch); render(); }
+  catch (e) { alert('Ошибка отправки команды: ' + e.message); }
+}
+
+document.querySelectorAll('#modeSeg button').forEach(btn => {
+  btn.addEventListener('click', () => sendCmd(() => Protocol.cmdSetMode(btn.dataset.mode), { mode: btn.dataset.mode }));
+});
+document.querySelectorAll('#startSeg button').forEach(btn => {
+  btn.addEventListener('click', () => sendCmd(() => Protocol.cmdSetStartProfile(btn.dataset.profile), { startProfile: btn.dataset.profile }));
+});
+document.getElementById('policeToggle').addEventListener('change', async (e) => {
+  if (e.target.checked) {
+    try {
+      await Ble.sendBytes(Protocol.cmdSetSpeedLimit(25));
+      await Ble.sendBytes(Protocol.cmdSetPowerLimit(250));
+      await Ble.sendBytes(Protocol.cmdSetMode('eco'));
+      Object.assign(state, { speedLimitKmh: 25, policeModeOn: true, mode: 'eco' });
+    } catch (err) { alert('Ошибка: ' + err.message); }
+  } else { state.policeModeOn = false; }
+  render();
+});
+document.getElementById('cruiseToggle').addEventListener('change', e => sendCmd(() => Protocol.cmdSetCruise(e.target.checked), { cruiseControlOn: e.target.checked }));
+document.getElementById('lightsToggle').addEventListener('change', e => sendCmd(() => Protocol.cmdSetLights(e.target.checked), { lightsOn: e.target.checked }));
+document.getElementById('quickLight').addEventListener('click', () => sendCmd(() => Protocol.cmdSetLights(!state.lightsOn), { lightsOn: !state.lightsOn }));
+document.getElementById('lockToggle').addEventListener('change', e => sendCmd(() => Protocol.cmdSetLock(e.target.checked), { locked: e.target.checked }));
+document.getElementById('quickLock').addEventListener('click', () => sendCmd(() => Protocol.cmdSetLock(!state.locked), { locked: !state.locked }));
+document.getElementById('speedLimitSlider').addEventListener('input', e => document.getElementById('speedLimitValue').textContent = e.target.value + ' км/ч');
+document.getElementById('speedLimitSlider').addEventListener('change', e => sendCmd(() => Protocol.cmdSetSpeedLimit(+e.target.value), { speedLimitKmh: +e.target.value, policeModeOn: false }));
+document.getElementById('regenSlider').addEventListener('input', e => document.getElementById('regenValue').textContent = 'Уровень ' + e.target.value);
+document.getElementById('regenSlider').addEventListener('change', e => sendCmd(() => Protocol.cmdSetRegenLevel(+e.target.value), { regenLevel: +e.target.value }));
+
+document.getElementById('sendHex').addEventListener('click', async () => {
+  const bytes = parseHex(document.getElementById('hexInput').value);
+  if (!bytes) { alert('Некорректный hex, пример: AA 01 10 55'); return; }
+  try { await Ble.sendBytes(bytes); logLine('→ ' + toHex(bytes)); }
+  catch (e) { alert('Ошибка отправки: ' + e.message); }
+});
+
+document.getElementById('extraUuids').value = localStorage.getItem('kugoo_extra_uuids') || '';
+document.getElementById('saveUuids').addEventListener('click', () => {
+  localStorage.setItem('kugoo_extra_uuids', document.getElementById('extraUuids').value);
+  alert('Сохранено. Переподключись, чтобы применить.');
+});
+
+document.getElementById('connBtn').addEventListener('click', async () => {
+  if (state.connected) { Ble.disconnect(); return; }
+  if (!Ble.isSupported()) {
+    alert('Этот браузер не поддерживает Web Bluetooth (или страница открыта не по HTTPS). Открой задеплоенную ссылку в Chrome на Android.');
+    return;
+  }
+  try { await Ble.connect(); }
+  catch (e) { if (e.name !== 'NotFoundError') alert('Не удалось подключиться: ' + e.message); }
+});
+
+document.querySelectorAll('.tabbar button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + btn.dataset.tab));
+    document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b === btn));
+    if (btn.dataset.tab === 'debug') { renderGattTree(); renderDeviceInfoCard(); }
+  });
+});
+
+/* ============================================================================
+ * INIT
+ * ========================================================================= */
+if (!Ble.isSupported()) {
+  document.body.insertAdjacentHTML('afterbegin',
+    '<div class="unsupported">Этот браузер не поддерживает Web Bluetooth. Открой страницу в Chrome или Samsung Internet на Android.</div>');
+}
+render();
+renderHistory();
+</script>
+</body>
+</html>
